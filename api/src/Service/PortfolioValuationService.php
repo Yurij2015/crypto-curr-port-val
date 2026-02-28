@@ -17,7 +17,7 @@ readonly class PortfolioValuationService
     }
 
     /**
-     * Calculate and store hourly portfolio value in PortfolioHistory for all traders
+     * Calculate and store hourly portfolio value in PortfolioHistory for all traders (aggregated)
      */
     public function snapshotAllTraders(): void
     {
@@ -28,29 +28,32 @@ readonly class PortfolioValuationService
             return;
         }
 
+        $aggregatedAmounts = [
+            'BTC' => 0.0,
+            'ETH' => 0.0,
+            'SOL' => 0.0,
+            'USDT' => 0.0,
+        ];
+
         foreach ($traders as $trader) {
-            $amounts = [
-                'BTC' => 0.0,
-                'ETH' => 0.0,
-                'SOL' => 0.0,
-                'USDT' => 0.0,
-            ];
             foreach ($trader->getPortfolios() as $portfolio) {
                 $asset = strtoupper($portfolio->getAsset());
-                if (isset($amounts[$asset])) {
-                    $amounts[$asset] = (float)$portfolio->getAmount();
+                if (isset($aggregatedAmounts[$asset])) {
+                    $aggregatedAmounts[$asset] += (float)$portfolio->getAmount();
                 }
             }
-            $history = $this->snapshotHourlyPortfolio($amounts);
-            if ($history) {
-                $this->logger->info('Portfolio snapshot saved', [
-                    'trader' => $trader->getName(),
-                    'amount_usdt' => $history->getAmountUsdt(),
-                    'calculated_at' => $history->getCalculatedAt()->format('c'),
-                ]);
-            } else {
-                $this->logger->error('Failed to save portfolio snapshot', ['trader' => $trader->getName()]);
-            }
+        }
+
+        $history = $this->snapshotHourlyPortfolio($aggregatedAmounts);
+        
+        if ($history) {
+            $this->logger->info('Global portfolio snapshot saved', [
+                'trader_count' => count($traders),
+                'amount_usdt' => $history->getAmountUsdt(),
+                'calculated_at' => $history->getCalculatedAt()->format('c'),
+            ]);
+        } else {
+            $this->logger->error('Failed to save global portfolio snapshot');
         }
     }
 
