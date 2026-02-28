@@ -3,7 +3,7 @@
 
 @layer base {
     * {
-        font-family: Poppins;
+        font-family: Poppins, serif;
     }
 
     a {
