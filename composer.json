@@ -1,0 +1,11 @@
+{
+    "require": {
+        "symfony/scheduler": "^8.0",
+        "dragonmantank/cron-expression": "^3.6",
+        "symfony/messenger": "^8.0"
+    },
+    "require-dev": {
+        "doctrine/doctrine-fixtures-bundle": "^4.3",
+        "nelmio/api-doc-bundle": "^5.9"
+    }
+}

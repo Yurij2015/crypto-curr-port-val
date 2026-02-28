@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Controller;
+
+use App\Entity\PortfolioHistory;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Attribute\AsController;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\HttpFoundation\Response;
+
+#[AsController]
+class PortfolioHistoryController extends AbstractController
+{
+    /**
+     * @throws \DateMalformedStringException
+     */
+    #[Route('/api/portfolio/history', name: 'app_portfolio_history', methods: ['GET'])]
+    public function history(Request $request, EntityManagerInterface $em): Response
+    {
+        $hours = $request->query->getInt('hours', 0);
+        $from = $request->query->get('from');
+        $to = $request->query->get('to');
+
+        $qb = $em->getRepository(PortfolioHistory::class)->createQueryBuilder('h');
+        if ($hours > 0) {
+            $fromDate = new \DateTimeImmutable('-' . $hours . ' hours');
+            $qb->andWhere('h.calculated_at >= :from')->setParameter('from', $fromDate);
+        }
+        if ($from) {
+            $qb->andWhere('h.calculated_at >= :from2')->setParameter('from2', new \DateTimeImmutable($from));
+        }
+        if ($to) {
+            $qb->andWhere('h.calculated_at <= :to')->setParameter('to', new \DateTimeImmutable($to));
+        }
+        $qb->orderBy('h.calculated_at', 'ASC');
+        $results = $qb->getQuery()->getResult();
+
+        $data = array_map(fn($h) => [
+            'time' => $h->getCalculatedAt()->format('Y-m-d\TH:i:s\Z'),
+            'amount_usdt' => (float)$h->getAmountUsdt()
+        ], $results);
+
+        return new JsonResponse($data);
+    }
+}
