@@ -25,20 +25,19 @@ class PortfolioHistoryController extends AbstractController
         $to = $request->query->get('to');
 
         $qb = $em->getRepository(PortfolioHistory::class)->createQueryBuilder('h');
+
         if ($hours > 0) {
             $fromDate = new \DateTimeImmutable('-' . $hours . ' hours');
-            $qb->andWhere('h.calculated_at >= :from')->setParameter('from', $fromDate);
+            $qb->andWhere('h.calculatedAt >= :from')->setParameter('from', $fromDate);
+        } elseif ($from && $to) {
+            $qb->andWhere('h.calculatedAt >= :from')->setParameter('from', new \DateTimeImmutable($from));
+            $qb->andWhere('h.calculatedAt <= :to')->setParameter('to', new \DateTimeImmutable($to));
         }
-        if ($from) {
-            $qb->andWhere('h.calculated_at >= :from2')->setParameter('from2', new \DateTimeImmutable($from));
-        }
-        if ($to) {
-            $qb->andWhere('h.calculated_at <= :to')->setParameter('to', new \DateTimeImmutable($to));
-        }
-        $qb->orderBy('h.calculated_at', 'ASC');
+
+        $qb->orderBy('h.calculatedAt', 'ASC');
         $results = $qb->getQuery()->getResult();
 
-        $data = array_map(fn($h) => [
+        $data = array_map(fn(PortfolioHistory $h) => [
             'time' => $h->getCalculatedAt()->format('Y-m-d\TH:i:s\Z'),
             'amount_usdt' => (float)$h->getAmountUsdt()
         ], $results);

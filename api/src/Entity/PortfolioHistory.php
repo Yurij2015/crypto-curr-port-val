@@ -3,17 +3,12 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\Response;
 use ApiPlatform\OpenApi\Model\Parameter;
-use App\Controller\PortfolioHistoryController;
 
-/**
- * @ORM\Entity
- */
 #[ORM\Entity]
 #[ApiResource(
     operations: [
@@ -70,28 +65,22 @@ use App\Controller\PortfolioHistoryController;
                     )
                 ]
             ),
-            paginationEnabled: true
+            paginationEnabled: false
         )
     ]
 )]
 class PortfolioHistory
 {
-    /**
-     * @ORM\Id
-     * @ORM\GeneratedValue
-     * @ORM\Column(type="integer")
-     * @Groups({"portfolio_history:read"})
-     */
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
     private int $id;
 
     #[ORM\Column(type: 'datetime_immutable')]
-    private \DateTimeImmutable $calculated_at;
+    private \DateTimeImmutable $calculatedAt;
 
     #[ORM\Column(type: 'decimal', precision: 18, scale: 8)]
-    private string $amount_usdt;
+    private string $amountUsdt;
 
     public function getId(): int
     {
@@ -100,23 +89,23 @@ class PortfolioHistory
 
     public function getCalculatedAt(): \DateTimeImmutable
     {
-        return $this->calculated_at;
+        return $this->calculatedAt;
     }
 
-    public function setCalculatedAt(\DateTimeImmutable $calculated_at): self
+    public function setCalculatedAt(\DateTimeImmutable $calculatedAt): self
     {
-        $this->calculated_at = $calculated_at;
+        $this->calculatedAt = $calculatedAt;
         return $this;
     }
 
     public function getAmountUsdt(): string
     {
-        return $this->amount_usdt;
+        return $this->amountUsdt;
     }
 
-    public function setAmountUsdt(string $amount_usdt): self
+    public function setAmountUsdt(string $amountUsdt): self
     {
-        $this->amount_usdt = $amount_usdt;
+        $this->amountUsdt = $amountUsdt;
         return $this;
     }
 }
