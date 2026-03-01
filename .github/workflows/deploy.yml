@@ -108,6 +108,7 @@ jobs:
             # Copy the shared .env into the api directory for Docker Build context
             if [ -f "${BASE_PATH}/.env" ]; then
               cp -f "${BASE_PATH}/.env" "${RELEASE_PATH}/api/.env"
+              cp -f "${BASE_PATH}/.env" "${RELEASE_PATH}/.env"
             fi
 
             # Symlink shared var directory for Symfony
