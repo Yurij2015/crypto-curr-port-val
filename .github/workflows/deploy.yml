@@ -35,7 +35,7 @@ jobs:
       - name: Create deployment artifact
         env:
           GITHUB_SHA: ${{ github.sha }}
-        run: tar -czf "${GITHUB_SHA}".tar.gz --exclude=.git --exclude="**/node_modules" --exclude="**/var/cache" --exclude="**/var/log" *
+        run: tar -czf "${GITHUB_SHA}".tar.gz --exclude=.git --exclude="**/node_modules" --exclude="**/var/cache" --exclude="**/var/log" --exclude="compose.override.yaml" *
       - name: Store artifact for distribution
         uses: actions/upload-artifact@v4
         with:
