@@ -9,6 +9,15 @@ if [ "$1" = 'frankenphp' ] || [ "$1" = 'php' ] || [ "$1" = 'bin/console' ]; then
 		echo "Created minimal .env file (all other vars from environment)"
 	fi
 
+	# Ensure var directories exist with correct permissions before any PHP command
+	# Remove symlink if it exists (happens when volumes: [] in compose)
+	if [ -L "var" ]; then
+		rm -f var
+	fi
+	mkdir -p var/cache var/log 2>/dev/null || true
+	setfacl -R -m u:www-data:rwX -m u:"$(whoami)":rwX var 2>/dev/null || chmod -R 777 var
+	setfacl -dR -m u:www-data:rwX -m u:"$(whoami)":rwX var 2>/dev/null || true
+
 	if [ -z "$(ls -A 'vendor/' 2>/dev/null)" ]; then
 		composer install --prefer-dist --no-progress --no-interaction
 	fi
@@ -46,9 +55,6 @@ if [ "$1" = 'frankenphp' ] || [ "$1" = 'php' ] || [ "$1" = 'bin/console' ]; then
 
 	# Install API Platform assets (Swagger UI, etc.)
 	php bin/console assets:install public --no-interaction
-
-	setfacl -R -m u:www-data:rwX -m u:"$(whoami)":rwX var
-	setfacl -dR -m u:www-data:rwX -m u:"$(whoami)":rwX var
 
 	echo 'PHP app ready!'
 fi
