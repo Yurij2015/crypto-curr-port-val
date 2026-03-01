@@ -6,7 +6,7 @@
     "username": "yurii",
     "path": "/home/yurii/crypto-curr-port-val",
     "beforeHooks": "echo 'Starting deployment for Crypto Portfolio...'",
-    "afterHooks": "cd $RELEASE_PATH && sed -i \"s|RUN pnpm fetch --prod|RUN pnpm fetch|g\" pwa/Dockerfile && sed -i \"s|pnpm install --frozen-lockfile --offline --prod|CI=true pnpm install --frozen-lockfile --offline|g\" pwa/Dockerfile && docker compose -p crypto-app -f compose.yaml -f compose.prod.yaml build --no-cache && docker compose -p crypto-app -f compose.yaml -f compose.prod.yaml up -d && docker exec crypto-app-php php bin/console doctrine:migrations:migrate --no-interaction",
+    "afterHooks": "echo 'Deployment prepared. Run Docker commands manually.'",
     "backupImages": false
   }
 ]
