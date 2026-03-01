@@ -2,6 +2,13 @@
 set -e
 
 if [ "$1" = 'frankenphp' ] || [ "$1" = 'php' ] || [ "$1" = 'bin/console' ]; then
+	# Create minimal .env file in production (all vars come from docker-compose env)
+	if [ "$APP_ENV" = "prod" ]; then
+		echo "APP_ENV=prod" > .env
+		echo "APP_RUNTIME_ENV=prod" >> .env
+		echo "Created minimal .env file (all other vars from environment)"
+	fi
+
 	if [ -z "$(ls -A 'vendor/' 2>/dev/null)" ]; then
 		composer install --prefer-dist --no-progress --no-interaction
 	fi
