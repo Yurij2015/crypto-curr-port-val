@@ -26,7 +26,7 @@ services:
     depends_on:
       - database
     restart: unless-stopped
-    command: php bin/console messenger:consume scheduler_default --time-limit=3600 --memory-limit=128M
+    command: php bin/console messenger:consume scheduler --time-limit=3600 --memory-limit=128M
     environment:
       APP_ENV: prod
       APP_SECRET: ${APP_SECRET}
@@ -38,6 +38,7 @@ services:
       MERCURE_SUBSCRIBER_JWT_KEY: ${CADDY_MERCURE_JWT_SECRET}
       MERCURE_JWT_SECRET: ${CADDY_MERCURE_JWT_SECRET}
       MERCURE_URL: http://php/.well-known/mercure
+      MERCURE_PUBLIC_URL: https://crypto-curr.digispace.pro/.well-known/mercure
     volumes: []
 
   pwa:
