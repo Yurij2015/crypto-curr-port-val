@@ -96,4 +96,5 @@ RUN rm -Rf frankenphp/
 RUN set -eux; \
 	mkdir -p var/cache var/log; \
 	composer dump-autoload --classmap-authoritative --no-dev; \
+	php bin/console assets:install public --no-interaction; \
 	chmod +x bin/console; sync;
