@@ -1,0 +1,194 @@
+# filepath: .github/workflows/deploy.yml
+name: Deploy Crypto Portfolio
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  create-deployment-artifacts:
+    name: Create deployment artifacts
+    runs-on: ubuntu-latest
+    outputs:
+      DEPLOYMENT_MATRIX: ${{ steps.export-deployment-matrix.outputs.DEPLOYMENT_MATRIX }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          coverage: none
+          extensions: mbstring, ctype, fileinfo, openssl, pdo_mysql, pdo_pgsql, bcmath, json, tokenizer, xml, pgsql, gd, zip, curl, intl, redis, pcntl
+          ini-values: post_max_size=256M,upload_max_filesize=256M
+      - name: Create temporary .env for build
+        run: |
+          cp .env.example .env || echo "APP_KEY=base64:test" > .env
+      - name: "API: Composer install"
+        working-directory: ./api
+        run: |
+          composer install --no-dev --no-interaction --prefer-dist
+      - name: "PWA: Install dependencies and build"
+        working-directory: ./pwa
+        run: |
+          npm install
+          npm run build
+      - name: Create deployment artifact
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: tar -czf "${GITHUB_SHA}".tar.gz --exclude=.git --exclude="**/node_modules" --exclude="**/var/cache" --exclude="**/var/log" *
+      - name: Store artifact for distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-build
+          path: ${{ github.sha }}.tar.gz
+      - name: Export deployment matrix
+        id: export-deployment-matrix
+        run: |
+          delimiter="$(openssl rand -hex 8)"
+          # Note: If deployment-config.json doesn't exist, this will fallback to a default empty matrix or error.
+          # We assume user will provide this config.
+          JSON="$(cat ./deployment-config.json || echo '[]')"
+          echo "DEPLOYMENT_MATRIX<<${delimiter}" >> "${GITHUB_OUTPUT}"
+          echo "$JSON" >> "${GITHUB_OUTPUT}"
+          echo "${delimiter}" >> "${GITHUB_OUTPUT}"
+
+  prepare-release-on-servers:
+    name: "${{ matrix.server.name }}: Prepare release"
+    runs-on: ubuntu-latest
+    needs: create-deployment-artifacts
+    strategy:
+      matrix:
+        server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-build
+      - name: Upload
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          source: ${{ github.sha }}.tar.gz
+          target: ${{ matrix.server.path }}/artifacts
+      - name: Extract archive and create directories
+        uses: appleboy/ssh-action@master
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          envs: GITHUB_SHA
+          script: |
+            mkdir -p "${{ matrix.server.path }}/releases/${GITHUB_SHA}"
+            tar xzf ${{ matrix.server.path }}/artifacts/${GITHUB_SHA}.tar.gz --no-same-owner --no-same-permissions -C "${{ matrix.server.path }}/releases/${GITHUB_SHA}"
+
+            # Setup Symfony specific directories
+            mkdir -p ${{ matrix.server.path }}/releases/${GITHUB_SHA}/api/var/{cache,log}
+            mkdir -p ${{ matrix.server.path }}/shared/api/var/{cache,log}
+
+            # Debugging
+            echo "--- debug: remote user ---"
+            whoami && id
+
+            # Fix ownership if sudo is available
+            if command -v sudo >/dev/null 2>&1; then
+              sudo chown -R ${{ matrix.server.username }}:www-data "${{ matrix.server.path }}/releases/${GITHUB_SHA}" || true
+              sudo chmod -R ug+rwx "${{ matrix.server.path }}/releases/${GITHUB_SHA}/api/var" || true
+            fi
+
+            ${{ matrix.server.beforeHooks }}
+
+  activate-release:
+    name: "${{ matrix.server.name }}: Activate release"
+    runs-on: ubuntu-latest
+    needs: [create-deployment-artifacts, prepare-release-on-servers]
+    strategy:
+      matrix:
+        server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
+    steps:
+      - name: Activate release
+        uses: appleboy/ssh-action@master
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          RELEASE_PATH: ${{ matrix.server.path }}/releases/${{ github.sha }}
+          ACTIVE_RELEASE_PATH: ${{ matrix.server.path }}/current
+          BASE_PATH: ${{ matrix.server.path }}
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,BASE_PATH
+          script: |
+            # Symlink the shared .env into the api directory
+            if [ -f "${BASE_PATH}/.env" ]; then
+              ln -s -f "${BASE_PATH}/.env" "${RELEASE_PATH}/api/.env"
+            fi
+
+            # Symlink shared var directory for Symfony
+            rm -rf "${RELEASE_PATH}/api/var"
+            ln -s -f "${BASE_PATH}/shared/api/var" "${RELEASE_PATH}/api/var"
+
+            ln -s -n -f $RELEASE_PATH $ACTIVE_RELEASE_PATH
+
+  run-after-hooks:
+    name: "${{ matrix.server.name }}: After hook"
+    runs-on: ubuntu-latest
+    needs:
+      [
+        create-deployment-artifacts,
+        prepare-release-on-servers,
+        activate-release,
+      ]
+    strategy:
+      matrix:
+        server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
+    steps:
+      - name: Run after hooks
+        uses: appleboy/ssh-action@master
+        env:
+          RELEASE_PATH: ${{ matrix.server.path }}/releases/${{ github.sha }}
+          AFTER_HOOKS: ${{ matrix.server.afterHooks }}
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          envs: RELEASE_PATH,AFTER_HOOKS
+          script: |
+            if [ -n "${AFTER_HOOKS:-}" ]; then
+              eval "${AFTER_HOOKS}"
+            fi
+
+  clean-up:
+    name: "${{ matrix.server.name }}: Clean up"
+    runs-on: ubuntu-latest
+    needs:
+      [
+        create-deployment-artifacts,
+        prepare-release-on-servers,
+        activate-release,
+        run-after-hooks,
+      ]
+    strategy:
+      matrix:
+        server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
+    steps:
+      - name: Clean up old releases
+        uses: appleboy/ssh-action@master
+        env:
+          RELEASES_PATH: ${{ matrix.server.path }}/releases
+          ARTIFACTS_PATH: ${{ matrix.server.path }}/artifacts
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          envs: RELEASES_PATH,ARTIFACTS_PATH
+          script: |
+            cd $RELEASES_PATH && ls -t -1 | tail -n +6 | xargs rm -rf || true
+            cd $ARTIFACTS_PATH && ls -t -1 | tail -n +6 | xargs rm -rf || true

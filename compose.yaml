@@ -44,7 +44,7 @@ services:
     depends_on:
       - database
     restart: unless-stopped
-    command: php bin/console messenger:consume scheduler_default --time-limit=3600 --memory-limit=128M -vv
+    command: php bin/console messenger:consume scheduler --time-limit=3600 --memory-limit=128M -vv
     volumes:
       - ./api:/app
     environment:
@@ -64,7 +64,7 @@ services:
       retries: 5
       start_period: 60s
     container_name: crypto-app-pwa
-  
+
   ###> doctrine/doctrine-bundle ###
   database:
     image: postgres:${POSTGRES_VERSION:-16}-alpine
@@ -74,7 +74,15 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-!ChangeMe!}
       - POSTGRES_USER=${POSTGRES_USER:-app}
     healthcheck:
-      test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB:-app}", "-U", "${POSTGRES_USER:-app}"]
+      test:
+        [
+          "CMD",
+          "pg_isready",
+          "-d",
+          "${POSTGRES_DB:-app}",
+          "-U",
+          "${POSTGRES_USER:-app}",
+        ]
       timeout: 5s
       retries: 5
       start_period: 60s
@@ -82,17 +90,17 @@ services:
       - database_data:/var/lib/postgresql/data:rw
       # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
       # - ./api/docker/db/data:/var/lib/postgresql/data:rw
-###< doctrine/doctrine-bundle ###
+    ###< doctrine/doctrine-bundle ###
 
-# Mercure is installed as a Caddy module, prevent the Flex recipe from installing another service
-###> symfony/mercure-bundle ###
-###< symfony/mercure-bundle ###
+    # Mercure is installed as a Caddy module, prevent the Flex recipe from installing another service
+    ###> symfony/mercure-bundle ###
+    ###< symfony/mercure-bundle ###
     container_name: crypto-app-db
 
 volumes:
   caddy_data:
   caddy_config:
-###> doctrine/doctrine-bundle ###
+  ###> doctrine/doctrine-bundle ###
   database_data:
 ###< doctrine/doctrine-bundle ###
 ###> symfony/mercure-bundle ###

@@ -18,6 +18,7 @@ readonly class PortfolioSnapshotHandler
 
     public function __invoke(PortfolioSnapshotMessage $message): void
     {
+        $this->logger->info('Portfolio snapshot scheduled run started.');
         $this->valuationService->snapshotAllTraders();
         $this->logger->info('Portfolio snapshot scheduled run completed.');
     }

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Crypto Production",
+    "ip": "138.201.196.61",
+    "port": 2225,
+    "username": "yurii",
+    "path": "/home/yurii/crypto-curr-port-val",
+    "beforeHooks": "echo 'Starting deployment for Crypto Portfolio...'",
+    "afterHooks": "cd $RELEASE_PATH && docker compose build && docker compose up -d && docker exec crypto-app-php php bin/console doctrine:migrations:migrate --no-interaction",
+    "backupImages": false
+  }
+]
