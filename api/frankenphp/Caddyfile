@@ -1,9 +1,6 @@
 {
 	skip_install_trust
 	
-	# Trust the reverse proxy's X-Forwarded-* headers since external Caddy handles TLS
-	trusted_proxies static 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
-	
 	# Disable auto HTTPS since this is behind a reverse proxy
 	auto_https off
 
