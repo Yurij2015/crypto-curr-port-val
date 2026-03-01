@@ -26,7 +26,7 @@ jobs:
       - name: "API: Composer install"
         working-directory: ./api
         run: |
-          composer install --no-dev --no-interaction --prefer-dist
+          composer install --no-dev --no-interaction --prefer-dist --no-scripts
       - name: "PWA: Install dependencies and build"
         working-directory: ./pwa
         run: |
