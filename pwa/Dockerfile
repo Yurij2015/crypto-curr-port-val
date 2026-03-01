@@ -33,12 +33,13 @@ CMD ["sh", "-c", "pnpm install; pnpm dev"]
 
 FROM base AS builder
 
-COPY --link pnpm-lock.yaml package.json ./
-RUN pnpm install
+COPY --link pnpm-lock.yaml ./
+RUN pnpm fetch
 
 COPY --link . .
 
-RUN pnpm run build
+RUN	pnpm install --frozen-lockfile && \
+	pnpm run build
 
 
 # Production image, copy all the files and run next
