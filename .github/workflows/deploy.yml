@@ -105,9 +105,9 @@ jobs:
           port: ${{ matrix.server.port }}
           envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,BASE_PATH
           script: |
-            # Symlink the shared .env into the api directory
+            # Copy the shared .env into the api directory for Docker Build context
             if [ -f "${BASE_PATH}/.env" ]; then
-              ln -s -f "${BASE_PATH}/.env" "${RELEASE_PATH}/api/.env"
+              cp -f "${BASE_PATH}/.env" "${RELEASE_PATH}/api/.env"
             fi
 
             # Symlink shared var directory for Symfony
