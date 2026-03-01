@@ -159,8 +159,6 @@ docker compose up -d
 
 Access:
 - API: http://localhost/docs
-- Frontend: http://localhost:3000
-- Database: localhost:5432 (user: `app`, pass: check .env)
 
 ### Run Migrations & Fixtures
 See [api/README.md](api/README.md) for detailed commands.
