@@ -6,7 +6,7 @@
     "username": "yurii",
     "path": "/home/yurii/crypto-curr-port-val",
     "beforeHooks": "echo 'Starting deployment for Crypto Portfolio...'",
-    "afterHooks": "cd $RELEASE_PATH && docker compose -p crypto-app --env-file /home/yurii/crypto-curr-port-val/.env -f compose.yaml -f compose.prod.yaml down --remove-orphans && docker compose -p crypto-app --env-file /home/yurii/crypto-curr-port-val/.env -f compose.yaml -f compose.prod.yaml build --no-cache --pull php php-scheduler && docker compose -p crypto-app --env-file /home/yurii/crypto-curr-port-val/.env -f compose.yaml -f compose.prod.yaml up -d --remove-orphans && docker exec crypto-app-php php bin/console doctrine:migrations:migrate --no-interaction",
+    "afterHooks": "cd $RELEASE_PATH && docker compose -p crypto-app --env-file /home/yurii/crypto-curr-port-val/.env -f compose.yaml -f compose.prod.yaml down --remove-orphans && docker rm -f crypto-app-pwa crypto-app-php crypto-app-db crypto-app-scheduler crypto-app-scheduler-prod 2>/dev/null || true && docker compose -p crypto-app --env-file /home/yurii/crypto-curr-port-val/.env -f compose.yaml -f compose.prod.yaml build --no-cache --pull php php-scheduler && docker compose -p crypto-app --env-file /home/yurii/crypto-curr-port-val/.env -f compose.yaml -f compose.prod.yaml up -d --remove-orphans && docker exec crypto-app-php php bin/console doctrine:migrations:migrate --no-interaction",
     "backupImages": false
   }
 ]
