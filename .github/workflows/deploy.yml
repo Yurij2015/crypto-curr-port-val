@@ -30,8 +30,10 @@ jobs:
       - name: "PWA: Install dependencies and build"
         working-directory: ./pwa
         run: |
-          npm install
-          npm run build
+          corepack enable
+          corepack prepare pnpm@latest --activate
+          pnpm install --frozen-lockfile
+          pnpm run build
       - name: Create deployment artifact
         env:
           GITHUB_SHA: ${{ github.sha }}
