@@ -13,27 +13,6 @@ jobs:
       DEPLOYMENT_MATRIX: ${{ steps.export-deployment-matrix.outputs.DEPLOYMENT_MATRIX }}
     steps:
       - uses: actions/checkout@v4
-      - name: Configure PHP 8.4
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.4
-          coverage: none
-          extensions: mbstring, ctype, fileinfo, openssl, pdo_mysql, pdo_pgsql, bcmath, json, tokenizer, xml, pgsql, gd, zip, curl, intl, redis, pcntl
-          ini-values: post_max_size=256M,upload_max_filesize=256M
-      - name: Create temporary .env for build
-        run: |
-          cp .env.example .env || echo "APP_KEY=base64:test" > .env
-      - name: "API: Composer install"
-        working-directory: ./api
-        run: |
-          composer install --no-dev --no-interaction --prefer-dist --no-scripts
-      - name: "PWA: Install dependencies and build"
-        working-directory: ./pwa
-        run: |
-          corepack enable
-          corepack prepare pnpm@latest --activate
-          pnpm install --frozen-lockfile
-          pnpm run build
       - name: Create deployment artifact
         env:
           GITHUB_SHA: ${{ github.sha }}
